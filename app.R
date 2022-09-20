@@ -2,7 +2,7 @@ library(shiny)
 library(tidyverse)
 library(leaflet)
 library(sf)
-library(lwgeom) # shinyapps.io asks for this
+#library(lwgeom) # shinyapps.io asks for this
 
 source("polygonangle.R")
 
@@ -11,8 +11,7 @@ streets <- readRDS("streets.RDS")
 areas <- as.vector(sort(unique(streets$kaupunginosa)))
 
 themes <- list("Dark" = theme_dark(),
-               "Minimal" = theme_minimal(),
-               "Void" = theme_void())
+               "Light" = theme_light())
 
 ui <- fluidPage(
   
@@ -22,22 +21,29 @@ ui <- fluidPage(
                    choices = areas,
                    selected = NULL,
                    multiple = TRUE,
-                   options = list(maxItems = 4)),
-    selectInput(inputId = "theme",
-                label = "Theme",
-                choices = names(themes),
-                selected = NULL),
+                   options = list(
+                     maxItems = 4,
+                     placeholder = 'Select district(s)',
+                     onInitialize = I('function() { this.setValue(""); }')
+                   )),
+    selectizeInput(inputId = "theme",
+                   label = "Theme",
+                   choices = names(themes),
+                   options = list(
+                     placeholder = 'Select a theme',
+                     onInitialize = I('function() { this.setValue(""); }')
+                   )),
     HTML("<p></p>
           <span style='color:black;font-size:12px'
           <p>
-            Select one or more areas, and the plot theme.
+            Select max 4 districts, and the plot theme.
           </p>
           <p></p>
           <p>
           </p>
-          <p><a href='https://github.com/tts/lakes'>R code</a> by <a href='https://twitter.com/ttso'>@ttso</a>.</p>
+          <p><a href='https://github.com/tts/hkidistricts'>R code</a> by <a href='https://twitter.com/ttso'>@ttso</a>.</p>
           <p></p>
-          <p>Data: <a href='https://hri.fi/data/en_GB/dataset/seutukartta'>Helsinki Region Map</a>.</p>
+          <p>Data: <a href='https://hri.fi/data/en_GB/dataset/helsingin-kaupungin-yleisten-alueiden-rekisteri'>Register of public areas in the City of Helsinki</a>.</p>
           </span>"),
     width = 3
   ),
@@ -46,6 +52,7 @@ ui <- fluidPage(
     tabsetPanel(
       tabPanel("Plot", 
                plotOutput("plot", height = 400, width = "100%")),
+              # downloadButton('ExportPlot', 'Export as png')),
       tabPanel("Map", 
                leafletOutput("map", height = 400, width = "100%"))
     ),
@@ -68,15 +75,24 @@ server <- function(input, output, session) {
   output$map <- renderLeaflet({
     leaflet(area_chosen()) %>% 
       addTiles() %>% 
-      addPolygons(weight = 1, color = "black")
-  })
+      addPolygons(weight = 1, 
+                  color = "black")
+  }) 
 
   output$plot <- renderPlot({
+    req(input$area, input$theme)
+    
     pmap_dfr(area_chosen(), min_box_sf) %>%
       ggplot() +
       geom_sf(alpha = .8) +
       ggtitle(paste(input$area, collapse = " | ")) +
-      plot_theme() 
+      plot_theme() +
+      theme(panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_blank(),
+            axis.ticks = element_blank(),
+            axis.text = element_blank(),
+            plot.title = element_text(size = 20, face = "bold")) 
   })
   
   
