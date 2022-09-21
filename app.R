@@ -2,18 +2,19 @@ library(shiny)
 library(tidyverse)
 library(leaflet)
 library(sf)
-#library(lwgeom) # shinyapps.io asks for this
 
 source("polygonangle.R")
-
 streets <- readRDS("streets.RDS")
-
 areas <- as.vector(sort(unique(streets$kaupunginosa)))
 
 themes <- list("Dark" = theme_dark(),
                "Light" = theme_light())
 
 ui <- fluidPage(
+  
+  tags$h2(
+    HTML("Streets of Helsinki by district as minimum bounding boxes with the angle")
+  ),
   
   sidebarPanel(
     selectizeInput(inputId = "area",
@@ -22,21 +23,22 @@ ui <- fluidPage(
                    selected = NULL,
                    multiple = TRUE,
                    options = list(
-                     maxItems = 4,
-                     placeholder = 'Select district(s)',
+                     maxItems = 2,
+                     placeholder = 'Pick district(s)',
                      onInitialize = I('function() { this.setValue(""); }')
                    )),
     selectizeInput(inputId = "theme",
-                   label = "Theme",
+                   label = "Style",
                    choices = names(themes),
                    options = list(
-                     placeholder = 'Select a theme',
+                     placeholder = 'and style',
                      onInitialize = I('function() { this.setValue(""); }')
                    )),
+    
     HTML("<p></p>
           <span style='color:black;font-size:12px'
           <p>
-            Select max 4 districts, and the plot theme.
+            Select 1-2 districts, and the plot style.
           </p>
           <p></p>
           <p>
@@ -45,8 +47,7 @@ ui <- fluidPage(
           <p></p>
           <p>Data: <a href='https://hri.fi/data/en_GB/dataset/helsingin-kaupungin-yleisten-alueiden-rekisteri'>Register of public areas in the City of Helsinki</a>.</p>
           </span>"),
-    width = 3
-  ),
+    width = 3),
 
   mainPanel(
     tabsetPanel(
@@ -92,9 +93,8 @@ server <- function(input, output, session) {
             axis.line = element_blank(),
             axis.ticks = element_blank(),
             axis.text = element_blank(),
-            plot.title = element_text(size = 20, face = "bold")) 
+            plot.title = element_text(size = 20)) 
   })
-  
   
 }
 
