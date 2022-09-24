@@ -7,13 +7,13 @@ source("polygonangle.R")
 streets <- readRDS("streets.RDS")
 areas <- as.vector(sort(c(unique(streets$kaupunginosa))))
 
-themes <- list("Light" = theme_light(),
-               "Dark" = theme_dark())
+themes <- list("Dark" = theme_dark(),
+               "Light" = theme_light())
 
 ui <- fluidPage(
   
   tags$h2(
-    HTML("Streets of Helsinki as minimum bounding boxes with angle")
+    HTML("Streets of Helsinki with angle (minimum bounding box)")
   ),
   
   sidebarPanel(
@@ -21,10 +21,10 @@ ui <- fluidPage(
                    label = "District",
                    choices = areas,
                    selected = NULL,
-                   multiple = TRUE,
+                   multiple = FALSE,
                    options = list(
-                     maxItems = 2,
-                     placeholder = 'Pick 1-2 districts',
+                     maxItems = 1,
+                     placeholder = 'Pick a district',
                      onInitialize = I('function() { this.setValue(""); }')
                    )),
     selectInput(inputId = "theme",
@@ -43,9 +43,9 @@ ui <- fluidPage(
   mainPanel(
     tabsetPanel(
       tabPanel("Plot", 
-               plotOutput("plot", width = "100%")),
+               plotOutput("plot")),
       tabPanel("Map", 
-               leafletOutput("map", width = "100%"))
+               leafletOutput("map"))
     ),
     width = 9
   ))
@@ -84,8 +84,8 @@ server <- function(input, output, session) {
             axis.ticks = element_blank(),
             axis.text = element_blank(),
             plot.title = element_text(size = 20),
-            plot.caption = element_text(margin = margin(20, 0, 0, 0)))
-    })
+            plot.caption = element_text(margin = margin(10, 0, 0, 0)))
+    }, height = 600)
   
 }
 
