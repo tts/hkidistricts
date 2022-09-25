@@ -1,4 +1,4 @@
-# Code from https://stackoverflow.com/a/68867844 with the following remarks:
+# tts: Functions are from https://stackoverflow.com/a/68867844 with the following remarks
 
 # Copied function getMinBBox()
 # from https://github.com/caiohamamura/flightplanning-R/blob/master/R/utils.R
