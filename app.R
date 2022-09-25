@@ -11,7 +11,7 @@ areas <- as.vector(sort(c(unique(streets$kaupunginosa))))
 ui <- function(request) { 
   dashboardPage(
     dashboardHeader(
-      title = "Streets of Helsinki as minimum bounding boxes with angle", titleWidth = "800px"
+      title = "Geographic orientation of the streets of Helsinki", titleWidth = "800px"
     ),
     dashboardSidebar(disable = TRUE),
     dashboardBody(
