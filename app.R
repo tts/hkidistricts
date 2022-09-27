@@ -5,7 +5,9 @@ library(leaflet)
 library(sf)
 
 source("polygonangle.R")
+hki <- readRDS("hki.RDS")
 streets <- readRDS("streets.RDS")
+
 areas <- as.vector(sort(c(unique(streets$kaupunginosa))))
 
 ui <- function(request) { 
@@ -31,21 +33,31 @@ ui <- function(request) {
             width = 6,
             HTML("<a href='https://github.com/tts/hkidistricts'>R code</a> by <a href='https://twitter.com/ttso'>@ttso</a>
                   <br/>
-                  Data: <a href='https://hri.fi/data/en_GB/dataset/helsingin-kaupungin-yleisten-alueiden-rekisteri'>Register of public areas in the City of Helsinki</a>.
-          ")),
+                  Data: <a href='https://hri.fi/data/en_GB/dataset/helsingin-kaupungin-yleisten-alueiden-rekisteri'>Register of public areas in the City of Helsinki</a>")),
       ),
       fluidRow(
-        box(title = "Plot", 
-            height = 500,
+        box(title = uiOutput("district_name"), 
+            height = 400,
+            width = 6,
+            plotOutput("plot", height = "340px")),
+        box(title = uiOutput("district_angle"), 
+            height = 400,
+            width = 6,
+            plotOutput("polar", height = "340px"))
+        ),
+      fluidRow(
+        box(title = NULL,
+            height = 400,
             width = 12,
-            plotOutput("plot")
-            ),
-        box(title = "Map",
-            height = 500,
+            leafletOutput("map", height = "340px")
+        )),
+      fluidRow(
+        box(title = "Count of street angles by range, all districts",
+            height = 400,
             width = 12,
-            leafletOutput("map")
-            ))
+            plotOutput("hki", height = "340px"))
       )
+    )
   )}
 
 
@@ -58,32 +70,80 @@ server <- function(input, output, session) {
       st_as_sf() 
   })
 
+  area_angle <- reactive({
+    withProgress(message = "Calculating", value = 0.5, {
+      pmap_dfr(area_chosen(), min_box_sf)
+    })
+  })
+  
+  output$district_name <- renderUI({
+    req(input$area)
+    paste0(input$area, " - minimum bounding boxes by angle")
+  })
+  
+  plot_theme <- theme(panel.background = element_rect(fill = "transparent", colour = NA),
+                      panel.grid = element_blank(),
+                      panel.border = element_blank(),
+                      panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank(),
+                      plot.margin = unit(c(0, 0, 0, 0), "null"),
+                      plot.background = element_rect(fill = "transparent", colour = NA),
+                      axis.line = element_blank(),
+                      axis.ticks = element_blank(),
+                      axis.text = element_blank(),
+                      axis.title = element_blank())
+  
+  output$plot <- renderPlot({
+    req(input$area)
+    area_angle() %>% 
+      ggplot() +
+      geom_sf(alpha = .8) +
+      plot_theme
+  })
+  
+  output$district_angle <- renderUI({
+    req(input$area)
+    paste0(input$area, " - count of angles by range")
+  })
+  
+  output$polar <- renderPlot({
+    req(input$area)
+    
+    area <- area_angle()
+    
+    area$range <- cut(area$angle, breaks = seq(0, 180, 30))
+    
+    range_count <- data.frame(area$range) %>% 
+      rename(range = area.range) %>% 
+      dplyr::count(., range)
+    
+    area_range <- left_join(area, range_count) %>% 
+      rename(Range = range)
+    
+    # https://rpubs.com/mattbagg/circular
+    ggplot(area_range, aes(x = angle, fill = Range)) + 
+      geom_histogram(breaks = seq(0, 180, 30), colour = "grey") + 
+      coord_polar(start = 0) + 
+      theme_minimal() + 
+      scale_fill_brewer() + 
+      ylab("Count") + 
+      scale_x_continuous("", limits = c(0, 180), 
+                         breaks = seq(0, 180, 30), 
+                         labels = seq(0, 180, 30))
+    
+  })
+  
   output$map <- renderLeaflet({
     req(input$area)
     leaflet(area_chosen()) %>%
       addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
-      addPolygons(weight = 1,
-                  color = "black")
+      addPolygons(weight = 1, color = "black")
   })
-
-  output$plot <- renderPlot({
-    req(input$area)
-    pmap_dfr(area_chosen(), min_box_sf) %>%
-      ggplot() +
-      geom_sf(alpha = .8) +
-      ggtitle(paste(input$area, collapse = " | ")) +
-      labs(caption = "Data: Register of public areas in the City of Helsinki hri.fi | @ttso ") +
-      theme(panel.background = element_rect(fill = "transparent", colour = NA),
-            panel.grid = element_blank(),
-            panel.border = element_blank(),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            plot.margin = unit(c(0, 0, 0, 0), "null"),
-            plot.background = element_rect(fill = "transparent", colour = NA),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            axis.text = element_blank())
-    })
+  
+  output$hki <- renderPlot({
+    hki
+  })
+  
 }
 
 shinyApp(ui = ui, server = server)
