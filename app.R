@@ -7,74 +7,89 @@ library(sf)
 source("polygonangle.R")
 hki <- readRDS("hki.RDS")
 streets <- readRDS("streets.RDS")
-allstreets_range <- readRDS("allstreets_range.RDS")
+allstreets_range <- readRDS("allstreets_range.RDS") 
 
 areas <- as.vector(sort(c(unique(streets$kaupunginosa))))
+flevels <- levels(allstreets_range$Range)[1:6]
 
 ui <- function(request) { 
   dashboardPage(
     dashboardHeader(
       title = "Geographic orientation of the streets of Helsinki", titleWidth = "800px"
     ),
-    dashboardSidebar(disable = TRUE),
+    dashboardSidebar(
+      sidebarMenu(
+        menuItem("Districts", tabName = "districts"),
+        menuItem("Helsinki", tabName = "helsinki")
+      ), collapsed = TRUE
+    ),
     dashboardBody(
-      fluidRow(
-        box(width = 6, 
-            selectizeInput(inputId = "area",
-                           label = "District",
-                           choices = areas,
-                           selected = NULL,
-                           multiple = FALSE,
-                           options = list(
-                             placeholder = 'Select a district',
-                             onInitialize = I('function() { this.setValue(""); }')
-                           ))
-        ),
-        box(title = "About",
-            width = 6,
-            HTML("<a href='https://github.com/tts/hkidistricts'>R code</a> by <a href='https://twitter.com/ttso'>@ttso</a>
+      tabItems(
+        tabItem(
+          tabName = "districts",
+          fluidRow(
+            box(width = 6, 
+                selectizeInput(inputId = "area",
+                               label = "District",
+                               choices = areas,
+                               selected = NULL,
+                               multiple = FALSE,
+                               options = list(
+                                 placeholder = 'Select a district',
+                                 onInitialize = I('function() { this.setValue(""); }')
+                               ))
+            ),
+            box(title = "About",
+                width = 6,
+                HTML("<a href='https://github.com/tts/hkidistricts'>R code</a> by <a href='https://twitter.com/ttso'>@ttso</a>
                   <br/>
                   Data: <a href='https://hri.fi/data/en_GB/dataset/helsingin-kaupungin-yleisten-alueiden-rekisteri'>Register of public areas in the City of Helsinki</a>")),
-      ),
-      fluidRow(
-        box(title = uiOutput("district_name"), 
-            height = 400,
-            width = 6,
-            plotOutput("plot", height = "340px")),
-        box(title = uiOutput("district_angle"), 
-            height = 400,
-            width = 6,
-            plotOutput("polar", height = "340px"))
+          ),
+          fluidRow(
+            box(title = uiOutput("district_name"), 
+                height = 400,
+                width = 6,
+                plotOutput("plot", height = "340px")),
+            box(title = uiOutput("district_angle"), 
+                height = 400,
+                width = 6,
+                plotOutput("polar", height = "340px"))
+          ),
+          fluidRow(
+            box(title = NULL,
+                height = 400,
+                width = 12,
+                leafletOutput("map", height = "340px"))
+          )
         ),
-      fluidRow(
-        box(title = NULL,
-            height = 400,
-            width = 12,
-            leafletOutput("map", height = "340px")
-        )),
-      fluidRow(
-        box(title = "Count of street angles by degree range, all districts",
-            height = 400,
-            width = 12,
-            plotOutput("hki", height = "340px"))
-      ),
-      fluidRow(
-        box(title = "Streets by degree range on map, all districts",
-            width = 6, 
-            selectInput(inputId = "level",
-                        label = "Degree range",
-                        choices = c("",levels(allstreets_range$Range)[1:6]),
-                        selected = NULL,
-                        multiple = FALSE)
-        ),
-      ),
-      fluidRow(
-        box(title = "Street angle range, all districts",
-            height = 400,
-            width = 12,
-            leafletOutput("map2", height = "340px"))
+        tabItem(
+          tabName = "helsinki",
+          fluidRow(
+            box(title = "Count of street angles by degree range, all districts",
+                height = 400,
+                width = 12,
+                plotOutput("hki", height = "340px"))
+          ),
+          fluidRow(
+            box(title = "Streets by degree range on map, all districts",
+                width = 6, 
+                selectInput(inputId = "level",
+                            label = "Degree range",
+                            choices = flevels,
+                            selected = flevels[1],
+                            multiple = FALSE)
+            ),
+          ),
+          fluidRow(
+            box(title = "Street angle range, all districts",
+                height = 400,
+                width = 12,
+                leafletOutput("map2", height = "340px"))
+          )
+        )
+        )
       )
-    )
+      
   )}
 
 
@@ -94,7 +109,7 @@ server <- function(input, output, session) {
   })
   
   map_angle_level <- reactive({
-    allstreets_range %>%
+    levels <- allstreets_range %>%
       filter(Range == input$level)
   })
   
@@ -133,7 +148,7 @@ server <- function(input, output, session) {
     
     area <- area_angle()
     
-    area$range <- cut(area$angle, breaks = seq(0, 180, 30))
+    area$range <- cut(area$angle, breaks = seq(0, 360, 30))
     
     range_count <- data.frame(area$range) %>% 
       rename(range = area.range) %>% 
@@ -145,7 +160,7 @@ server <- function(input, output, session) {
     # https://rpubs.com/mattbagg/circular
     ggplot(area_range, aes(x = angle, fill = Range)) + 
       geom_histogram(breaks = seq(0, 360, 30), colour = "grey") + 
-      coord_polar(start = 4.71, direction = -1) + 
+      coord_polar(start = 4.71, direction = -1) + # 0/360 in East in radians, counterclockwise
       theme_minimal() + 
       scale_fill_brewer() + 
       ylab("Count") + 
@@ -159,7 +174,7 @@ server <- function(input, output, session) {
     req(input$area)
     leaflet(area_chosen()) %>%
       addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
-      addPolygons(weight = 1, color = "black")
+      addPolygons(weight = 1, color = "black") 
   })
   
   output$map2 <- renderLeaflet({
