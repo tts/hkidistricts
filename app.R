@@ -14,6 +14,13 @@ areas <- as.vector(sort(c(unique(streets$kaupunginosa))))
 flevels <- levels(allstreets_range$Range)[1:6]
 
 ui <- function(request) { 
+  
+  # tags$head(
+  #    tags$style(HTML("
+  #      div.box[div#hideme] { # no support yet for this type of selector
+  #        border-top: none;
+  #      }"))
+  #    )
 
   dashboardPage(
     dashboardHeader(
@@ -206,9 +213,11 @@ server <- function(input, output, session) {
       geom_histogram(aes(x = South, fill = factor(n)), breaks = seq(0, 360, 30), colour = "grey") + 
       coord_polar(start = 4.71, direction = -1) + # 0/360 in East as radii, counterclockwise
       theme_minimal() + 
+      theme(axis.text.y = element_blank(), 
+            axis.ticks = element_blank(),
+            axis.title = element_blank()) +
       scale_fill_brewer() + 
-      ylab("Count") + 
-      guides(fill = "none") +
+      guides(fill = guide_legend("Count")) +
       scale_x_continuous("", limits = c(0, 360),
                         breaks = seq(0, 360, 30),
                         labels = c(seq(0, 330, 30), ""))
