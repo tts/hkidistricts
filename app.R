@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyjs)
 library(shinydashboard)
 library(tidyverse)
 library(leaflet)
@@ -13,11 +14,13 @@ areas <- as.vector(sort(c(unique(streets$kaupunginosa))))
 flevels <- levels(allstreets_range$Range)[1:6]
 
 ui <- function(request) { 
+
   dashboardPage(
     dashboardHeader(
       title = "Geographic orientation of the streets of Helsinki", titleWidth = "800px"
     ),
     dashboardSidebar(
+      useShinyjs(),
       sidebarMenu(
         menuItem("Districts", tabName = "districts"),
         menuItem("Helsinki", tabName = "helsinki")
@@ -30,12 +33,12 @@ ui <- function(request) {
           fluidRow(
             box(width = 6, 
                 selectizeInput(inputId = "area",
-                               label = "District",
+                               label = "Select district",
                                choices = areas,
                                selected = NULL,
                                multiple = FALSE,
                                options = list(
-                                 placeholder = 'Select a district',
+                                 placeholder = 'Pick one from the list',
                                  onInitialize = I('function() { this.setValue(""); }')
                                ))
             ),
@@ -56,32 +59,43 @@ ui <- function(request) {
                 plotOutput("polar", height = "340px"))
           ),
           fluidRow(
+            box(id = "hideme"),
+            box(width = 6,
+                selectInput(inputId = "deg",
+                            label = "Select degree range",
+                            choices = NULL)
+            )
+          ),
+          fluidRow(
             box(title = NULL,
                 height = 400,
-                width = 12,
-                leafletOutput("map", height = "340px"))
+                width = 6,
+                leafletOutput("map", height = "340px")),
+            box(title = NULL,
+                height = 400,
+                width = 6,
+                leafletOutput("mapo", height = "340px"))
           )
         ),
         tabItem(
           tabName = "helsinki",
           fluidRow(
-            box(title = "Count of street angles by degree range, all districts",
+            box(title = "Count of streets by range of degree, all districts",
                 height = 400,
                 width = 12,
                 plotOutput("hki", height = "340px"))
           ),
           fluidRow(
-            box(title = "Streets by degree range on map, all districts",
+            box(title = NULL,
                 width = 6, 
                 selectInput(inputId = "level",
-                            label = "Degree range",
+                            label = "Select range",
                             choices = flevels,
                             selected = flevels[1],
-                            multiple = FALSE)
-            ),
+                            multiple = FALSE))
           ),
           fluidRow(
-            box(title = "Street angle range, all districts",
+            box(title = "Streets mapped by range of degree, all districts",
                 height = 400,
                 width = 12,
                 leafletOutput("map2", height = "340px"))
@@ -95,28 +109,54 @@ ui <- function(request) {
 
 server <- function(input, output, session) {
   
+  shinyjs::hide(id = "hideme")
+  
   area_chosen <- reactive({
+    req(input$area)
     streets %>% 
       filter(kaupunginosa %in% input$area) %>% 
       st_geometry() %>% 
       st_as_sf() 
-  })
+  }) %>% 
+    bindCache(input$area)
 
   area_angle <- reactive({
+    req(input$area)
+
     withProgress(message = "Calculating", value = 0.5, {
-      pmap_dfr(area_chosen(), min_box_sf)
-    })
+      pmap_dfr(area_chosen(), min_box_sf) %>% 
+        mutate(range = cut(angle, breaks = seq(0, 360, 30)))
+      }) 
+    }) %>% 
+    bindCache(input$area, area_chosen())
+  
+  observe({
+    req(area_angle())
+    x <- sort(unique(area_angle()$range[!is.na(area_angle()$range)]))
+
+    updateSelectInput(session, "deg",
+                      choices = x,
+                      selected = x[1]
+    )
   })
+
+  mapo_angle_level <- reactive({
+    area_angle() %>%
+      filter(range == input$deg)
+  }) %>% 
+    bindCache(input$deg, area_angle())
   
   map_angle_level <- reactive({
-    levels <- allstreets_range %>%
+    allstreets_range %>%
       filter(Range == input$level)
-  })
-  
+  }) %>% 
+    bindCache(input$level)
+
   output$district_name <- renderUI({
     req(input$area)
-    paste0(input$area, " - minimum bounding boxes by angle")
-  })
+    paste0(input$area, " - minimum bounding boxes")
+  }) %>% 
+    bindCache(input$area)
   
   plot_theme <- theme(panel.background = element_rect(fill = "transparent", colour = NA),
                       panel.grid = element_blank(),
@@ -132,57 +172,73 @@ server <- function(input, output, session) {
   
   output$plot <- renderPlot({
     req(input$area)
+    
     area_angle() %>% 
       ggplot() +
       geom_sf(alpha = .8) +
       plot_theme
-  })
+    
+    }) %>% 
+      bindCache(input$area, area_angle())
   
   output$district_angle <- renderUI({
     req(input$area)
-    paste0(input$area, " - count of angles by range")
-  })
+    paste0(input$area, " - count of streets by the range of degree")
+  }) %>% 
+    bindCache(input$area)
   
   output$polar <- renderPlot({
     req(input$area)
     
     area <- area_angle()
     
-    area$range <- cut(area$angle, breaks = seq(0, 360, 30))
-    
     range_count <- data.frame(area$range) %>% 
       rename(range = area.range) %>% 
       dplyr::count(., range)
     
     area_range <- left_join(area, range_count) %>% 
-      rename(Range = range)
+      rename(Range = range) %>% 
+      mutate(South = angle + 180)
     
     # https://rpubs.com/mattbagg/circular
-    ggplot(area_range, aes(x = angle, fill = Range)) + 
+    ggplot(area_range, aes(x = angle, fill = factor(n))) + 
       geom_histogram(breaks = seq(0, 360, 30), colour = "grey") + 
-      coord_polar(start = 4.71, direction = -1) + # 0/360 in East in radians, counterclockwise
+      geom_histogram(aes(x = South, fill = factor(n)), breaks = seq(0, 360, 30), colour = "grey") + 
+      coord_polar(start = 4.71, direction = -1) + # 0/360 in East as radii, counterclockwise
       theme_minimal() + 
       scale_fill_brewer() + 
       ylab("Count") + 
+      guides(fill = "none") +
       scale_x_continuous("", limits = c(0, 360),
                         breaks = seq(0, 360, 30),
                         labels = c(seq(0, 330, 30), ""))
     
-  })
+  }) %>% 
+    bindCache(input$area, area_angle())
   
   output$map <- renderLeaflet({
     req(input$area)
     leaflet(area_chosen()) %>%
       addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
       addPolygons(weight = 1, color = "black") 
-  })
+  }) %>% 
+    bindCache(input$area, area_chosen())
+  
+  output$mapo <- renderLeaflet({
+    req(input$deg)
+    leaflet(mapo_angle_level()) %>%
+      addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
+      addPolygons(weight = 1, color = "black") 
+  }) %>% 
+    bindCache(input$deg, mapo_angle_level())
   
   output$map2 <- renderLeaflet({
     req(input$level)
     leaflet(map_angle_level()) %>%
       addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
       addPolygons(weight = 1, color = "black")
-  })
+  }) %>% 
+    bindCache(input$level, map_angle_level())
   
   output$hki <- renderPlot({
     hki
