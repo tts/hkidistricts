@@ -26,22 +26,32 @@ streets_geo <- streets %>%
 
 allstreets <- pmap_dfr(streets_geo, min_box_sf) 
 
-allstreets$range <- cut(allstreets$angle, breaks=seq(0,180,30))
+allstreets$range <- cut(allstreets$angle, breaks=seq(0, 360, 30))
 
 range_count <- data.frame(allstreets$range) %>%
   rename(range = allstreets.range) %>%
   dplyr::count(., range)
 
 allstreets_range <- left_join(allstreets, range_count) %>% 
-  rename(Range = range)
+  rename(Range = range) %>% 
+  mutate(South = angle + 180)
 
-hki <- ggplot(allstreets_range, aes(x = angle, fill = Range)) + 
-  geom_histogram(breaks = seq(0, 180, 30), colour = "grey") + 
-  coord_polar(start = 0) + 
+saveRDS(allstreets_range, "allstreets_range.RDS")
+
+hki <- ggplot(allstreets_range, aes(x = angle, fill = factor(n))) + 
+  geom_histogram(breaks = seq(0, 360, 30), colour = "grey") + 
+  geom_histogram(aes(x = South, fill = factor(n)), breaks = seq(0, 360, 30), colour = "grey") + 
+  coord_polar(start = 4.71, direction = -1) + 
   theme_minimal() + 
+  theme(axis.text.y = element_blank(), 
+        axis.ticks = element_blank(),
+        axis.title = element_blank()) +
   scale_fill_brewer() + 
-  ylab("Count") + 
-  scale_x_continuous("", limits = c(0, 180), breaks = seq(0, 180, 30), labels = seq(0, 180, 30))
+  guides(fill = guide_legend("Count")) +
+  scale_x_continuous("", 
+                     limits = c(0, 360), 
+                     breaks = seq(0, 360, 30), 
+                     labels = c(seq(0, 330, 30), ""))
 
 saveRDS(hki, "hki.RDS")
 
