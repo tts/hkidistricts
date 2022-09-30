@@ -5,6 +5,7 @@ library(leaflet)
 library(sf)
 
 source("polygonangle.R")
+source("utils.R")
 hki <- readRDS("hki.RDS")
 streets <- readRDS("streets.RDS")
 allstreets_range <- readRDS("allstreets_range.RDS") 
@@ -121,6 +122,7 @@ server <- function(input, output, session) {
   area_angle <- reactive({
     req(input$area)
 
+    # No incProgress because can't get it to work with bindCache
     withProgress(message = "Calculating", value = 0.7, {
       pmap_dfr(area_chosen(), min_box_sf) %>% 
         mutate(range = cut(angle, breaks = seq(0, 360, 30)))
@@ -198,50 +200,31 @@ server <- function(input, output, session) {
       rename(Range = range) %>% 
       mutate(South = angle + 180)
     
-    # https://rpubs.com/mattbagg/circular
-    ggplot(area_range, aes(x = angle, fill = factor(n))) + 
-      geom_histogram(breaks = seq(0, 360, 30), colour = "grey") + 
-      geom_histogram(aes(x = South, fill = factor(n)), breaks = seq(0, 360, 30), colour = "grey") + 
-      coord_polar(start = 4.71, direction = -1) + # 0/360 in East as radii, counterclockwise
-      theme_minimal() + 
-      theme(axis.text.y = element_blank(), 
-            axis.ticks = element_blank(),
-            axis.title = element_blank()) +
-      scale_fill_brewer() + 
-      guides(fill = guide_legend("Count")) +
-      scale_x_continuous("", limits = c(0, 360),
-                        breaks = seq(0, 360, 30),
-                        labels = c(seq(0, 330, 30), ""))
+    makeplot(area_range)
     
   }) %>% 
     bindCache(input$area, area_angle())
   
   output$map <- renderLeaflet({
     req(input$area)
-    leaflet(area_chosen()) %>%
-      addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
-      addPolygons(weight = 1, color = "black") 
+    makemap(area_chosen())
   }) %>% 
     bindCache(input$area, area_chosen())
   
   output$mapo <- renderLeaflet({
     req(input$deg)
-    leaflet(mapo_angle_level()) %>%
-      addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
-      addPolygons(weight = 1, color = "black") 
+    makemap(mapo_angle_level())
   }) %>% 
     bindCache(input$deg, mapo_angle_level())
   
   output$map2 <- renderLeaflet({
     req(input$level)
-    leaflet(map_angle_level()) %>%
-      addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
-      addPolygons(weight = 1, color = "black")
+    makemap(map_angle_level())
   }) %>% 
     bindCache(input$level, map_angle_level())
   
   output$hki <- renderPlot({
-    hki
+      hki
   })
   
 }
