@@ -1,6 +1,8 @@
 library(tidyverse)
 library(sf)
 
+source("utils.R")
+
 baseurl <- "https://kartta.hel.fi/ws/geoserver/avoindata/wfs?version=1.0.0&request=GetFeature"
 type <- "avoindata:YLRE_Katualue_alue"
 request <- paste0(baseurl, "&typeName=", type)
@@ -38,20 +40,7 @@ allstreets_range <- left_join(allstreets, range_count) %>%
 
 saveRDS(allstreets_range, "allstreets_range.RDS")
 
-hki <- ggplot(allstreets_range, aes(x = angle, fill = factor(n))) + 
-  geom_histogram(breaks = seq(0, 360, 30), colour = "grey") + 
-  geom_histogram(aes(x = South, fill = factor(n)), breaks = seq(0, 360, 30), colour = "grey") + 
-  coord_polar(start = 4.71, direction = -1) + 
-  theme_minimal() + 
-  theme(axis.text.y = element_blank(), 
-        axis.ticks = element_blank(),
-        axis.title = element_blank()) +
-  scale_fill_brewer() + 
-  guides(fill = guide_legend("Count")) +
-  scale_x_continuous("", 
-                     limits = c(0, 360), 
-                     breaks = seq(0, 360, 30), 
-                     labels = c(seq(0, 330, 30), ""))
+hki <- makeplot(allstreets_range)
 
 saveRDS(hki, "hki.RDS")
 
