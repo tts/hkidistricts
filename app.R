@@ -1,5 +1,4 @@
 library(shiny)
-library(shinyjs)
 library(shinydashboard)
 library(tidyverse)
 library(leaflet)
@@ -11,29 +10,23 @@ streets <- readRDS("streets.RDS")
 allstreets_range <- readRDS("allstreets_range.RDS") 
 
 areas <- as.vector(sort(c(unique(streets$kaupunginosa))))
-flevels <- levels(allstreets_range$Range)[1:6]
+flevels <- levels(allstreets_range$Range)[1:6] # up to 180 degrees only
 
 ui <- function(request) { 
-  
-  # tags$head(
-  #    tags$style(HTML("
-  #      div.box[div#hideme] { # no support yet for this type of selector
-  #        border-top: none;
-  #      }"))
-  #    )
 
   dashboardPage(
     dashboardHeader(
       title = "Geographic orientation of the streets of Helsinki", titleWidth = "800px"
     ),
     dashboardSidebar(
-      useShinyjs(),
       sidebarMenu(
         menuItem("Districts", tabName = "districts"),
         menuItem("Helsinki", tabName = "helsinki")
       ), collapsed = TRUE
     ),
     dashboardBody(
+      tags$head(tags$style(HTML("#hideme {display: none;}"))),
+      tags$head(tags$style(HTML("div.col-sm-6 div.box {border-top: none; border-left: 3px solid #d2d6de}"))),
       tabItems(
         tabItem(
           tabName = "districts",
@@ -116,8 +109,6 @@ ui <- function(request) {
 
 server <- function(input, output, session) {
   
-  shinyjs::hide(id = "hideme")
-  
   area_chosen <- reactive({
     req(input$area)
     streets %>% 
@@ -130,7 +121,7 @@ server <- function(input, output, session) {
   area_angle <- reactive({
     req(input$area)
 
-    withProgress(message = "Calculating", value = 0.5, {
+    withProgress(message = "Calculating", value = 0.7, {
       pmap_dfr(area_chosen(), min_box_sf) %>% 
         mutate(range = cut(angle, breaks = seq(0, 360, 30)))
       }) 
@@ -184,7 +175,7 @@ server <- function(input, output, session) {
       ggplot() +
       geom_sf(alpha = .8) +
       plot_theme
-    
+      
     }) %>% 
       bindCache(input$area, area_angle())
   
