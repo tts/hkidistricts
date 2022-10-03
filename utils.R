@@ -18,7 +18,7 @@ makeplot <- function(data) {
 makemap <- function(data) {
   m <- leaflet(data) %>%
     addTiles(attribution = "OpenStreetMap | Register of public areas in the City of Helsinki") %>%
-    addPolygons(weight = 1, color = "black") 
+    addPolygons(weight = 1, color = "black", options = pathOptions(interactive = FALSE)) 
   return(m)
 }
   
