@@ -26,6 +26,7 @@ ui <- function(request) {
       ), collapsed = TRUE
     ),
     dashboardBody(
+      tags$head(tags$style(HTML(".leaflet-container {cursor: auto !important;}"))),
       tags$head(tags$style(HTML("#hideme {display: none;}"))),
       tags$head(tags$style(HTML("div.col-sm-6 div.box {border-top: none; border-left: 3px solid #d2d6de}"))),
       tabItems(
