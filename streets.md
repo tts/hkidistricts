@@ -10,14 +10,11 @@ failed. So I used `conda_install` instead and even defined
 
 ``` r
 knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = FALSE)
-
-library(reticulate)
-conda_install(envname = "r-reticulate", packages= "osmnx")
 ```
 
-    ## + "C:/Users/Me/Anaconda3/condabin/conda.bat" "install" "--yes" "--name" "r-reticulate" "-c" "conda-forge" "osmnx"
-
 ``` r
+library(reticulate)
+conda_install(envname = "r-reticulate", packages= "osmnx")
 use_condaenv("r-reticulate")
 ```
 
@@ -72,7 +69,8 @@ districts = {y: y + ', Helsinki, Finland' for y in [x for x in open('districts.c
 
 By trial and error I realized that two districts do not have any streets
 with the type `drive` so I needed to delete their keys. Otherwise the
-code breaks. Proper error handling would be the answer here.
+code breaks. Proper error handling would be the answer here (I say to
+myself).
 
 The core functionality of the plotting code below is verbatim from the
 subroutine
