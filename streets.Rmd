@@ -44,7 +44,7 @@ districts = {y: y + ', Helsinki, Finland' for y in [x for x in open('districts.c
 ```
 
 ```{python}
-# Header; no streets of type 'drive' in the next two; and Pasila is trapped in an HTTP error loop
+# Header; no streets of type 'drive' in the next two; Pasila is trapped in an HTTP error loop
 # because earlier errors are all cached. How to to get rid of those?
 remove_keys = ('kaupunginosa', 'Suomenlinna', 'Mustikkamaa-Korkeasaari', 'Pasila')
 for key in remove_keys:
