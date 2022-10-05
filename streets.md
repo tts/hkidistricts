@@ -1,16 +1,24 @@
-Orientation of the streets of Helsinki by district
+Visualizing street orientations of Helsinki with OSMnx
 ================
 Tuija Sonkkila
-2022-10-04
+2022-10-05
 
-I had difficulties with the `reticulate::py_install` function. Although
-the Python libraries seemed to have been installed just fine, `import`
-failed. So I used `conda_install` instead and even defined
-`use_condaenv` although it is perhaps not necessary.
+When I was doing an R Shiny [app of
+streets](https://ttso.shinyapps.io/hkidistricts/) from the data by the
+City of Helsinki, I found the Python library
+[OSMnx](https://github.com/gboeing/osmnx) by Geoff Boeing, Urban
+planning and spatial analysis professor at USC. His visualization of
+[100 cities around the
+world](https://geoffboeing.com/2018/07/city-street-orientations-world/)
+is very nice and compact, so I decided to do the same from the 55
+districts of Helsinki.
 
-``` r
-knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = FALSE)
-```
+In my Windows laptop, I have the Anaconda package manager. From the
+RStudio IDE I installed Python libraries with `conda_install` and even
+defined `use_condaenv` although it is perhaps not necessary. That said,
+the whole procedure of working with Python libraries with `reticulate`
+is still somewhat hazy to me; my first try was with `py_install` but
+although libraries seemed to have installed just fine, import failed.
 
 ``` r
 library(reticulate)
@@ -22,30 +30,28 @@ use_condaenv("r-reticulate")
 import numpy as np
 import matplotlib.pyplot as plt
 import osmnx as ox
+
+ox.config(log_console = True, use_cache = True)
 ```
 
-The `ox.config` is soon history so this needs to be changed at some
-point.
+I am warned that the `ox.config` is soon history so this needs to be
+changed at some point.
 
 Caching proved to be a two-edged sword in my case. It saves time
-tremendously but if there is an HTTP error, you can fall into an endless
-loop because the error message is cached too, and you cannot get rid of
-it. When you rerun the code, the problematic item in the dictionary is
-encountered at some point, the cached message fetched, and - for unknown
-reasons - you’ll get the same HTTP error again, it is cached etc. First
-I thought that the problematic item, Pasila, was too big to handle but
-when run individually, all went smoothly.
+dramatically but if there is an HTTP error, you can fall into an endless
+loop. I did. The error message is cached too, and you cannot get rid of
+it, or at least I don’t know how to do it. When you rerun the code, the
+problematic item in the dictionary is encountered, the cached message
+fetched, you get the same HTTP error again, it is cached etc. First I
+thought that the problematic district, Pasila, was too big and slow to
+query but when run individually, all went smoothly. So I was forced to
+handle Pasila separately.
 
-That said, this could well be a novice user error. The OSMnx library is
-very impressive work.
+Of course this could well be a novice user error.
 
-``` python
-ox.config(log_console = True, use_cache = True)
-ox.__version__
-```
-
-I’m not sure if Python can read R dataframes directly, probably not
-without some extra library. Here with a CSV sidestep.
+First I needed all district names in a dictionary. The R dataframe was
+there already but I suppose I cannot read it directly from a Python
+chunck. So here I do a CSV sidestep.
 
 ``` r
 library(dplyr)
@@ -59,18 +65,18 @@ districts <- streets %>%
 write.csv(districts, "districts.csv", row.names = FALSE, quote = FALSE)
 ```
 
-In the following dict comprehension where I define a dictionary, I tried
-to define *skip the first row* because that’s the column name. I did not
-succeed so I check the string value in the outer loop.
+In the dict comprehension where I define a dictionary, I tried to define
+*skip the first row* because that’s the column name. This did not
+succeed so I check the string value in the outer loop instead.
 
 ``` python
 districts = {y: y + ', Helsinki, Finland' for y in [x for x in open('districts.csv').read().split('\n') if x ] if y != "kaupunginosa" }
 ```
 
-By trial and error I realized that two districts do not have any streets
-with the type `drive` so I needed to delete their keys. Otherwise the
-code breaks. Proper error handling would be the answer here (I say to
-myself).
+Then, by trial and error, I realized that two districts do not have any
+streets with the type `drive` so I needed to delete their keys,
+otherwise the code breaks. Proper error handling would be the answer
+here (I say to myself).
 
 The core functionality of the plotting code below is verbatim from the
 subroutine
@@ -115,16 +121,16 @@ axes.flat[-3].set_visible(False)
 axes.flat[-4].set_visible(False)
 ```
 
-And then the last one, Pasila.
+And then the odd one, Pasila.
 
-One another thing to learn at this point was, how to add this single
-subplot to the `fig` done above? I can live with the fact that sorting
-by name would be wrong with Pasila at the end. Maybe I could somehow
-rearrange all subplots?
+One another thing to learn at this point was, how to add the single
+subplot to the `fig`? I can live with the fact that sorting by name
+would be wrong with Pasila at the end. Maybe I could somehow rearrange
+all subplots?
 
 Anyway, the trick I learned when hiding subplots was using the index. So
 I just add this new subplot to the end, and then make it visible again.
-Programmatically not wise but will do this time.
+Programmatically not wise and looks a tad weird but will do this time.
 
 ``` python
 P = ox.graph_from_place('Pasila, Helsinki, Finland', network_type = "drive")
