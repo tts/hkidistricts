@@ -51,7 +51,7 @@ Of course this could well be a novice user error.
 
 First I needed all district names in a dictionary. The R dataframe was
 there already but I suppose I cannot read it directly from a Python
-chunck. So here I do a CSV sidestep.
+chunk. So here I do a CSV side step.
 
 ``` r
 library(dplyr)
