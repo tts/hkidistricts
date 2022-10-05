@@ -33,8 +33,8 @@ loop because the error message is cached too, and you cannot get rid of
 it. When you rerun the code, the problematic item in the dictionary is
 encountered at some point, the cached message fetched, and - for unknown
 reasons - you’ll get the same HTTP error again, it is cached etc. First
-I thought that the problematic item was too big to handle but when run
-individually, there was no problems.
+I thought that the problematic item, Pasila, was too big to handle but
+when run individually, all went smoothly.
 
 That said, this could well be a novice user error. The OSMnx library is
 very impressive work.
@@ -59,12 +59,12 @@ districts <- streets %>%
 write.csv(districts, "districts.csv", row.names = FALSE, quote = FALSE)
 ```
 
-In the following list comprehension, I tried to define *skip the first
-row* but didn’t succeed so I’ll delete the header from the dictionary
-later on.
+In the following dict comprehension where I define a dictionary, I tried
+to define *skip the first row* because that’s the column name. I did not
+succeed so I check the string value in the outer loop.
 
 ``` python
-districts = {y: y + ', Helsinki, Finland' for y in [x for x in open('districts.csv').read().split('\n') if x]}
+districts = {y: y + ', Helsinki, Finland' for y in [x for x in open('districts.csv').read().split('\n') if x ] if y != "kaupunginosa" }
 ```
 
 By trial and error I realized that two districts do not have any streets
@@ -82,7 +82,8 @@ The way I understand the code, before the actual plotting takes place,
 the code allocates full columns and rows based on the number of plots
 to-come. However, plots do not fill all slots in the last row, leaving
 few empty placeholders. I need to dig further into this to find out how
-to fill up the available space in a cleaner fashion.
+to fill up the available space in a cleaner fashion, e.g. as discussed
+[here](https://stackoverflow.com/questions/44980658/remove-the-extra-plot-in-the-matplotlib-subplot).
 
 ``` python
 remove_keys = ('kaupunginosa', 'Suomenlinna', 'Mustikkamaa-Korkeasaari', 'Pasila')
@@ -90,7 +91,7 @@ remove_keys = ('kaupunginosa', 'Suomenlinna', 'Mustikkamaa-Korkeasaari', 'Pasila
 for key in remove_keys:
     if key in districts:
         del districts[key]
-
+        
 n = len(districts)
 
 ncols = int(np.ceil(np.sqrt(n)))
@@ -117,11 +118,43 @@ plt.close()
 
 And then just Pasila.
 
+One another thing to learn: how to add this single plot to the bigger
+plot done above? I noticed that before `plt.close()` the plot was still
+open for adding, but for some reason the last plot there was replaced by
+this new one. Something to do with the axes I guess. I’d live with the
+fact that sorting by name would be wrong with Pasila at the end.
+
 ``` python
 G = ox.graph_from_place('Pasila, Helsinki, Finland', network_type = "drive")
 Gu = ox.add_edge_bearings(ox.get_undirected(G))
 fig, ax = ox.bearing.plot_orientation(Gu, title = 'Pasila', area = False, title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
 
 fig.savefig("pasila.pdf", facecolor = "w", dpi = 100, bbox_inches = "tight")
+plt.close()
+```
+
+``` python
+# debug
+
+ncols = int(np.ceil(np.sqrt(n)))
+nrows = int(np.ceil(n / ncols))
+
+figsize = (ncols * 5, nrows * 5)
+
+fig, axes = plt.subplots(nrows, ncols, figsize = figsize, subplot_kw = {"projection": "polar"})
+
+for ax, district in zip(axes.flat, sorted(districts.keys())):
+  print(ox.utils.ts(), district)
+  
+  G = ox.graph_from_place(district, network_type = "drive")
+  Gu = ox.add_edge_bearings(ox.get_undirected(G))
+  fig, ax = ox.bearing.plot_orientation(Gu, ax = ax, title = district, area = False, 
+  title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
+    
+fig.tight_layout()
+fig.subplots_adjust(hspace = 0.35)
+
+fig.savefig("districts.pdf", facecolor = "w", dpi = 100, bbox_inches = "tight")
+        
 plt.close()
 ```
