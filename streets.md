@@ -118,9 +118,9 @@ axes.flat[-4].set_visible(False)
 And then the last one, Pasila.
 
 One another thing to learn at this point was, how to add this single
-plot to the bigger plot done above? I can live with the fact that
-sorting by name would be wrong with Pasila at the end. Maybe I could
-somehow rearrange all subplots?
+subplot to the `fig` done above? I can live with the fact that sorting
+by name would be wrong with Pasila at the end. Maybe I could somehow
+rearrange all subplots?
 
 Anyway, the trick I learned when hiding subplots was using the index. So
 I just add this new subplot to the end, and then make it visible again.
