@@ -43,7 +43,7 @@ loop. I did. The error message is cached too, and you cannot get rid of
 it, or at least I don’t know how to do it. When you rerun the code, the
 problematic item in the dictionary is encountered, the cached message
 fetched, you get the same HTTP error again, it is cached etc. First I
-thought that the problematic district, Pasila, was too big and slow to
+thought that the district in question, Pasila, was too big and slow to
 query but when run individually, all went smoothly. So I was forced to
 handle Pasila separately.
 
