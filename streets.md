@@ -44,8 +44,8 @@ ox.config(log_console = True, use_cache = True)
 ox.__version__
 ```
 
-I’m not sure if Python can read R dataframes directly. Here with a CSV
-sidestep.
+I’m not sure if Python can read R dataframes directly, probably not
+without some extra library. Here with a CSV sidestep.
 
 ``` r
 library(dplyr)
@@ -81,12 +81,13 @@ Bergermann](https://github.com/KBergermann).
 The way I understand the code, before the actual plotting takes place,
 the code allocates full columns and rows based on the number of plots
 to-come. However, plots do not fill all slots in the last row, leaving
-few empty placeholders. I need to dig further into this to find out how
-to fill up the available space in a cleaner fashion, e.g. as discussed
-[here](https://stackoverflow.com/questions/44980658/remove-the-extra-plot-in-the-matplotlib-subplot).
+few empty placeholders.
+
+As a brute force solution, I hide these subplots. In my case, the last
+four.
 
 ``` python
-remove_keys = ('kaupunginosa', 'Suomenlinna', 'Mustikkamaa-Korkeasaari', 'Pasila')
+remove_keys = ('Suomenlinna', 'Mustikkamaa-Korkeasaari', 'Pasila')
 
 for key in remove_keys:
     if key in districts:
@@ -107,28 +108,35 @@ for ax, district in zip(axes.flat, sorted(districts.keys())):
   Gu = ox.add_edge_bearings(ox.get_undirected(G))
   fig, ax = ox.bearing.plot_orientation(Gu, ax = ax, title = district, area = False, 
   title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
-    
+
+axes.flat[-1].set_visible(False)
+axes.flat[-2].set_visible(False)
+axes.flat[-3].set_visible(False)
+axes.flat[-4].set_visible(False)
+```
+
+And then the last one, Pasila.
+
+One another thing to learn at this point was, how to add this single
+plot to the bigger plot done above? I can live with the fact that
+sorting by name would be wrong with Pasila at the end. Maybe I could
+somehow rearrange all subplots?
+
+Anyway, the trick I learned when hiding subplots was using the index. So
+I just add this new subplot to the end, and then make it visible again.
+Programmatically not wise but will do this time.
+
+``` python
+P = ox.graph_from_place('Pasila, Helsinki, Finland', network_type = "drive")
+Pu = ox.add_edge_bearings(ox.get_undirected(P))
+fig, ax = ox.bearing.plot_orientation(Pu, title = 'Pasila', ax = axes.flat[-1], area = False, title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
+
+axes.flat[-1].set_visible(True)
+
 fig.tight_layout()
 fig.subplots_adjust(hspace = 0.35)
 
 fig.savefig("districts.pdf", facecolor = "w", dpi = 100, bbox_inches = "tight")
         
-plt.close()
-```
-
-And then just Pasila.
-
-One another thing to learn: how to add this single plot to the bigger
-plot done above? I noticed that before `plt.close()` the plot was still
-open for adding, but for some reason the last subplot there was replaced
-by this new one. Something to do with the axes I guess. I’d live with
-the fact that sorting by name would be wrong with Pasila at the end.
-
-``` python
-G = ox.graph_from_place('Pasila, Helsinki, Finland', network_type = "drive")
-Gu = ox.add_edge_bearings(ox.get_undirected(G))
-fig, ax = ox.bearing.plot_orientation(Gu, title = 'Pasila', area = False, title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
-
-fig.savefig("pasila.pdf", facecolor = "w", dpi = 100, bbox_inches = "tight")
 plt.close()
 ```
