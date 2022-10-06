@@ -92,35 +92,6 @@ few empty placeholders.
 As a brute force solution, I hide these subplots. In my case, the last
 four.
 
-``` python
-remove_keys = ('Suomenlinna', 'Mustikkamaa-Korkeasaari', 'Pasila')
-
-for key in remove_keys:
-    if key in districts:
-        del districts[key]
-        
-n = len(districts)
-
-ncols = int(np.ceil(np.sqrt(n)))
-nrows = int(np.ceil(n / ncols))
-
-figsize = (ncols * 5, nrows * 5)
-fig, axes = plt.subplots(nrows, ncols, figsize = figsize, subplot_kw = {"projection": "polar"})
-
-for ax, district in zip(axes.flat, sorted(districts.keys())):
-  print(ox.utils.ts(), district)
-  
-  G = ox.graph_from_place(district, network_type = "drive")
-  Gu = ox.add_edge_bearings(ox.get_undirected(G))
-  fig, ax = ox.bearing.plot_orientation(Gu, ax = ax, title = district, area = False, 
-  title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
-
-axes.flat[-1].set_visible(False)
-axes.flat[-2].set_visible(False)
-axes.flat[-3].set_visible(False)
-axes.flat[-4].set_visible(False)
-```
-
 And then the odd one, Pasila.
 
 One another thing to learn at this point was, how to add the single
@@ -135,16 +106,19 @@ Programmatically not wise and looks a tad weird but will do this time.
 ``` python
 P = ox.graph_from_place('Pasila, Helsinki, Finland', network_type = "drive")
 Pu = ox.add_edge_bearings(ox.get_undirected(P))
-fig, ax = ox.bearing.plot_orientation(Pu, title = 'Pasila', ax = axes.flat[-1], area = False, title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
+fig, ax = ox.bearing.plot_orientation(Pu, title = 'Pasila', ax = axes.flat[-4], area = False, title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
 
-axes.flat[-1].set_visible(True)
+axes.flat[-4].set_visible(True)
 
 fig.tight_layout()
-fig.subplots_adjust(hspace = 0.35)
+fig.subplots_adjust(hspace = 0.35, top = 0.90)
+fig.suptitle("Orientation of the streets of Helsinki by district", fontsize = 60)
+fig.text(1, 0.01, "Data: OpenStreetMap | @ttso", ha = "right", fontsize = 10)
 
 fig.savefig("districts.pdf", facecolor = "w", dpi = 100, bbox_inches = "tight")
-        
+fig.savefig("districts.png", facecolor = "w", dpi = 100, bbox_inches = "tight")
+
 plt.close()
 ```
 
-The visualization is still missing a main title and credits.
+![Districts of Helsinki](districts.png)
