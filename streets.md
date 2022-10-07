@@ -187,7 +187,3 @@ bike plot. What we can say is that there are more bikes routes to that
 direction than to North.
 
 To do: add radial tick labels to show the scale.
-
-``` python
-G = ox.graph_from_place("Pasila", network_type = "drive")
-```
