@@ -49,9 +49,9 @@ handle Pasila separately.
 
 Of course this could well be a novice user error.
 
-First I needed all district names in a dictionary. The R dataframe was
+First I needed all district names in a dictionary. The R dataframe is
 there already but I suppose I cannot read it directly from a Python
-chunk. So here I do a CSV side step.
+chunk. So here with a CSV side step.
 
 ``` r
 library(dplyr)
@@ -84,10 +84,10 @@ subroutine
 included in the `Urban-multiplex-networks` repository by [Kai
 Bergermann](https://github.com/KBergermann).
 
-The way I understand the code, before the actual plotting takes place,
-the code allocates full columns and rows based on the number of plots
-to-come. However, plots do not fill all slots in the last row, leaving
-few empty placeholders.
+The way I understand the code is that before the final data plotting
+takes place, the code first allocates full columns and rows based on the
+number of plots to-come, and draws the polar coordinates. However, plots
+do not fill all slots in the last row, leaving few empty placeholders.
 
 As a brute force solution, I hide these subplots. In my case, the last
 four.
@@ -150,3 +150,41 @@ plt.close()
 ```
 
 ![Districts of Helsinki](districts.png)
+
+How does the big picture look like in different street network types?
+Which mode of moving brings you to most directions most often? I’d
+assume walking… Physical facts draw hard limits though: Helsinki sits on
+a cape.
+
+``` python
+types = ("drive", "walk", "bike")
+
+fig, axes = plt.subplots(nrows = 1, ncols = 3, figsize = (15, 5), subplot_kw = {"projection": "polar"})
+
+for ax, type in zip(axes.flat, sorted(types)):
+  print(ox.utils.ts(), type)
+  
+  H = ox.graph_from_place("Helsinki, Finland", network_type = type)
+  Hu = ox.add_edge_bearings(ox.get_undirected(H))
+  fig, ax = ox.bearing.plot_orientation(Hu, ax = ax, title = type, area = False, title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
+  
+fig.tight_layout()
+fig.subplots_adjust(hspace = 0.35, top = 0.90)
+fig.suptitle("Orientation of the streets of Helsinki \n by network type", fontsize = 20)
+fig.text(1, 0.01, "Data: OpenStreetMap | @ttso", ha = "right", fontsize = 10)
+fig.savefig("types2.png", facecolor = "w", dpi = 60, bbox_inches = "tight")
+
+plt.close()
+```
+
+![Helsinki by network type](types2.png)
+
+You cannot compare relative frequencies of streets in one particular
+compass bearing (orientation) between these three plots because the
+scale is not the same. In other words, we cannot say that there are more
+bike routes to the direction of “almost” North - between 120 and 90
+degrees - than drive routes, although the bar is somewhat longer in the
+bike plot. What we can say is that there are more bikes routes to that
+direction than to North.
+
+To do: add radial tick labels to show the scale.
