@@ -39,13 +39,12 @@ changed at some point.
 
 Caching proved to be a two-edged sword in my case. It saves time
 dramatically but if there is an HTTP error, you can fall into an endless
-loop. I did. The error message is cached too, and you cannot get rid of
-it, or at least I don’t know how to do it. When you rerun the code, the
-problematic item in the dictionary is encountered, the cached message
-fetched, you get the same HTTP error again, it is cached etc. First I
-thought that the district in question, Pasila, was too big and slow to
-query but when run individually, all went smoothly. So I was forced to
-handle Pasila separately.
+loop. I did because the error message is cached too. When you rerun the
+code, the problematic item in the dictionary is encountered, the cached
+message fetched, you get the same HTTP error again, it is cached etc.
+First I thought that the district in question, Pasila, was too big and
+slow to query but when run individually, all went smoothly. So I was
+forced to handle Pasila separately.
 
 Of course this could well be a novice user error.
 
@@ -188,3 +187,7 @@ bike plot. What we can say is that there are more bikes routes to that
 direction than to North.
 
 To do: add radial tick labels to show the scale.
+
+``` python
+G = ox.graph_from_place("Pasila", network_type = "drive")
+```
