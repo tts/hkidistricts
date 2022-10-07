@@ -159,25 +159,25 @@ a cape.
 ``` python
 types = ("drive", "walk", "bike")
 
-fig, axes = plt.subplots(nrows = 1, ncols = 3, figsize = (15, 5), subplot_kw = {"projection": "polar"})
+fig, axes = plt.subplots(nrows = 1, ncols = 3, figsize = (5, 5), subplot_kw = {"projection": "polar"})
 
 for ax, type in zip(axes.flat, sorted(types)):
   print(ox.utils.ts(), type)
   
   H = ox.graph_from_place("Helsinki, Finland", network_type = type)
   Hu = ox.add_edge_bearings(ox.get_undirected(H))
-  fig, ax = ox.bearing.plot_orientation(Hu, ax = ax, title = type, area = False, title_font = {"family": "sans-serif", "fontsize": 30}, xtick_font = {"family": "sans-serif", "fontsize": 15})
+  fig, ax = ox.bearing.plot_orientation(Hu, ax = ax, title = type, area = False, title_font = {"family": "sans-serif", "fontsize": 20}, xtick_font = {"family": "sans-serif", "fontsize": 6})
   
 fig.tight_layout()
-fig.subplots_adjust(hspace = 0.35, top = 0.90)
+fig.subplots_adjust(hspace = 0.35, top = 1)
 fig.suptitle("Orientation of the streets of Helsinki \n by network type", fontsize = 20)
 fig.text(1, 0.01, "Data: OpenStreetMap | @ttso", ha = "right", fontsize = 10)
-fig.savefig("types2.png", facecolor = "w", dpi = 60, bbox_inches = "tight")
+fig.savefig("types.png", facecolor = "w", dpi = 100, bbox_inches = "tight")
 
 plt.close()
 ```
 
-![Helsinki by network type](types2.png)
+![Helsinki by street network types](types.png)
 
 You cannot compare relative frequencies of streets in one particular
 compass bearing (orientation) between these three plots because the
